@@ -8,12 +8,14 @@ use App\Models\Discussion;
 use App\Models\Identity;
 use App\Models\Offer;
 use App\Models\ProcessApply;
+use App\Models\Sector;
 use App\Models\Skill;
 use App\Models\User;
 use App\Models\UserDegree;
 use App\Models\UserSkill;
 use App\Notifications\AlertAdmin;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 trait StatisticTrait
@@ -46,15 +48,37 @@ trait StatisticTrait
             return $item->offer_skills_count > 0;
         })->values();
 
+        $labels = [];
+        $values = [];
+        for ($i = 0; $i < count($skills_filtered); $i++) {
+            $labels[] = $skills_filtered[$i]['name'];
+            $values[] = $skills_filtered[$i]['offer_skills_count'];
+        }
 
-        $user_skills = UserSkill::with("skill.offer_skills")->get();
+        $user_skills = UserSkill::with("skill.offer_skills")
+            ->where("user_id",getApiConnectedUser()->id)->get();
+        $labels2 = [];
+        $values2 = [];
+        for ($i = 0; $i < count($user_skills); $i++) {
+            $labels2[] = $user_skills[$i]["skill"]['name'];
+            $values2[] = count($user_skills[$i]['skill']['offer_skills']);
+        }
+
+        $sectors = Sector::with("offers")->has("offers")->get();
+        $labels3 = [];
+        $values3 = [];
+        for ($i = 0; $i < count($sectors); $i++) {
+            $labels3[] = $sectors[$i]['name'];
+            $values3[] = count($sectors[$i]['offers']);
+        }
 
         return [
             "count_applies"=>$count_applies,
             "count_applies_preselection"=>$count_applies_preselection,
             "count_applies_finalise"=>$count_applies_finalise,
-            "skills"=>$skills_filtered,
-            "user_skills"=>$user_skills
+            "skills"=>["values" =>$values,"labels"=>$labels],
+            "user_skills"=>["values" =>$values2,"labels"=>$labels2],
+            "sectors"=>["values" =>$values3,"labels"=>$labels3],
         ];
     }
 
